@@ -3,8 +3,7 @@ package com.company;
 import com.example.wirelessdatatransfer.FileDetails;
 
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,8 +12,9 @@ import java.io.OutputStream;
 
 public class SocketServer extends Thread {
     private ServerSocket serverSocket;
-    private int port;
     private boolean running = false;
+    private int finalPORT;
+    private int port;
 
     public SocketServer(int port )
     {
@@ -22,11 +22,12 @@ public class SocketServer extends Thread {
     }
 
 
-    public void startServer()
+    public void startServer(int port)
     {
         try
         {
             serverSocket = new ServerSocket( port );
+            finalPORT = port;
             this.start();
         }
         catch (IOException e)
@@ -55,8 +56,16 @@ public class SocketServer extends Thread {
                 Socket socket = serverSocket.accept();
 
                 // Pass the socket to the RequestHandler thread for processing
-                RequestHandler requestHandler = new RequestHandler( socket );
-                requestHandler.start();
+                if(finalPORT == 4000){
+                    RequestHandler requestHandler = new RequestHandler( socket );
+                    requestHandler.start();
+                }
+                else{
+                    AddDevice addDevice = new AddDevice(socket);
+                    addDevice.start();
+                }
+
+
             }
             catch (IOException e)
             {
@@ -67,13 +76,15 @@ public class SocketServer extends Thread {
 
     public static void main( String[] args )
     {
-        int port = 4000;
-        System.out.println( "Start server on port: " + port );
+        int port1 = 4000;
+        int port2 = 3000;
+        System.out.println( "Start server on port: " + port1 );
 
-        SocketServer server = new SocketServer( port );
-        server.startServer();
-
-        // Automatically shutdown in 1 minute
+        SocketServer dataServer = new SocketServer( port1 );
+        SocketServer infoServer = new SocketServer( port2 );
+        dataServer.startServer(port1);
+        infoServer.startServer(port2);
+        // Automaticsally shutdown in 1 minute
         try
         {
             Thread.sleep( 60000 );
@@ -83,7 +94,7 @@ public class SocketServer extends Thread {
             e.printStackTrace();
         }
 
-        server.stopServer();
+        dataServer.stopServer();
     }
 
 
@@ -107,6 +118,7 @@ class RequestHandler extends Thread
             System.out.println( "Received a connection" );
 
             System.out.println("Getting details from Client...");
+            obtainIP(socket);
             ObjectInputStream getDetails = new ObjectInputStream(socket.getInputStream());
             FileDetails details = (FileDetails) getDetails.readObject();
             System.out.println("Now receiving file...");
@@ -117,7 +129,9 @@ class RequestHandler extends Thread
             System.out.println("File Name : " + fileName);
             byte[] data = new byte[1024]; // Here you can increase the size also which will receive it faster
             InputStream in = socket.getInputStream();
-            FileOutputStream path = new FileOutputStream("C:\\DataTransferServerFiles\\" + fileName);
+//            home/ubuntu/WDT-Server/data/
+            String filePath = System.getProperty("user.dir");
+            FileOutputStream path = new FileOutputStream(filePath+ "\\" + fileName);
             BufferedOutputStream out = new BufferedOutputStream(path);
             int remainent;
             int count;
@@ -130,7 +144,7 @@ class RequestHandler extends Thread
 //                System.out.println("Read: " +  count + " - Received: " + sum + "/" + length + " - Remainent: " + remainent + " -- " + percent + "%");
                 out.write(data, 0, count);
                 out.flush();
-                System.out.println("Data received : " + sum + " / " + fileSize);
+                System.out.println("Data received 4: " + sum + " / " + fileSize);
 //                if (remainent == 0) break;
             }
             out.flush();
@@ -143,5 +157,22 @@ class RequestHandler extends Thread
         {
             e.printStackTrace();
         }
+    }
+
+    private void obtainIP(Socket socket) {
+        SocketAddress socketAddress = socket.getRemoteSocketAddress();
+
+        if (socketAddress instanceof InetSocketAddress) {
+            InetAddress inetAddress = ((InetSocketAddress)socketAddress).getAddress();
+            if (inetAddress instanceof Inet4Address)
+                System.out.println("IPv4: " + inetAddress);
+            else if (inetAddress instanceof Inet6Address)
+                System.out.println("IPv6: " + inetAddress);
+            else
+                System.err.println("Not an IP address.");
+        } else {
+            System.err.println("Not an internet protocol socket.");
+        }
+
     }
 }
