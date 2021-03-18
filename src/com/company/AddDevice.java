@@ -21,6 +21,7 @@ public class AddDevice extends Thread{
             InputStream inputStream = socket.getInputStream();
             DataInputStream dataInputStream = new DataInputStream(inputStream);
             String message = dataInputStream.readUTF();
+            writeIDtoCSV(message);
             System.out.println("The message sent from the socket was: " + message);
 
             System.out.println("Closing sockets.");
@@ -33,4 +34,17 @@ public class AddDevice extends Thread{
             e.printStackTrace();
         }
     }
+
+    private void writeIDtoCSV(String message) {
+        try {
+            FileWriter csvWriter = new FileWriter("devices.csv");
+            csvWriter.append(message);
+            csvWriter.flush();
+            csvWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 }

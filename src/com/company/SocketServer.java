@@ -10,7 +10,9 @@ import java.io.FileInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
+
 public class SocketServer extends Thread {
+    private static final String CSV_FILE_NAME = "devices.csv";
     private ServerSocket serverSocket;
     private boolean running = false;
     private int finalPORT;
@@ -74,11 +76,12 @@ public class SocketServer extends Thread {
         }
     }
 
-    public static void main( String[] args )
-    {
+    public static void main( String[] args ) throws IOException {
         int port1 = 4000;
         int port2 = 3000;
         System.out.println( "Start server on port: " + port1 );
+
+        initializeCSV();
 
         SocketServer dataServer = new SocketServer( port1 );
         SocketServer infoServer = new SocketServer( port2 );
@@ -93,12 +96,25 @@ public class SocketServer extends Thread {
         {
             e.printStackTrace();
         }
-
+        infoServer.stopServer();
         dataServer.stopServer();
     }
 
+    private static void initializeCSV() throws IOException {
+        BufferedReader csvReader = null;
+        try {
+            csvReader = new BufferedReader(new FileReader(CSV_FILE_NAME));
+            csvReader.close();
+        } catch (FileNotFoundException e) {
+            PrintWriter writer = new PrintWriter(new File(CSV_FILE_NAME));
+            writer.close();
+            System.out.println("done!");
+        }
+        }
+    }
 
-}
+
+
 
 
 
